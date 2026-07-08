@@ -6,11 +6,15 @@ from app.core.database import get_db
 from app.core.dependencies import require_roles
 from app.features.student.schema import (
     IssuedStudentCardRead,
+    ParentPasswordResetRequest,
+    ParentPasswordResetResponse,
     StudentCardRenewRequest,
     StudentCardResponse,
     StudentCreate,
     StudentCreateResponse,
     StudentRead,
+    StudentStatisticsReport,
+    StudentUpdate,
 )
 from app.features.student.service import StudentService
 
@@ -24,8 +28,9 @@ def create_student(
     _: dict = Depends(require_roles(UserRole.ADMIN, UserRole.STUDENT_MANAGER)),
 ):
     student, parent_username, temp_password = StudentService(db).create_student(payload)
+    service = StudentService(db)
     return StudentCreateResponse(
-        student=StudentRead.model_validate(student),
+        student=service._to_student_read(student),
         parent_username=parent_username,
         parent_initial_password=temp_password,
     )
@@ -37,7 +42,44 @@ def list_students(
     db: Session = Depends(get_db),
     _: dict = Depends(require_roles(UserRole.ADMIN, UserRole.STUDENT_MANAGER, UserRole.CARD_ISSUER)),
 ):
-    return StudentService(db).list_students(national_id=national_id)
+    return StudentService(db).list_students_read(national_id=national_id)
+
+
+@router.get("/statistics", response_model=StudentStatisticsReport)
+def get_student_statistics(
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(UserRole.ADMIN)),
+):
+    return StudentService(db).get_statistics_report()
+
+
+@router.put("/{student_id}", response_model=StudentRead)
+def update_student(
+    student_id: int,
+    payload: StudentUpdate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(UserRole.ADMIN, UserRole.STUDENT_MANAGER)),
+):
+    return StudentService(db).update_student(student_id, payload)
+
+
+@router.post("/{student_id}/parent/reset-password", response_model=ParentPasswordResetResponse)
+def reset_parent_password(
+    student_id: int,
+    payload: ParentPasswordResetRequest = ParentPasswordResetRequest(),
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(UserRole.ADMIN, UserRole.STUDENT_MANAGER)),
+):
+    student, parent_username, new_password = StudentService(db).reset_parent_password(
+        student_id=student_id,
+        new_password=payload.new_password,
+    )
+    return ParentPasswordResetResponse(
+        student_id=student.id,
+        student_name=student.full_name,
+        parent_username=parent_username,
+        new_password=new_password,
+    )
 
 
 @router.get("/{student_id}/card", response_model=StudentCardResponse)

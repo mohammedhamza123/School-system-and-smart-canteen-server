@@ -38,3 +38,9 @@ class StudentRepository:
             .order_by(Student.card_issued_at.desc(), Student.id.desc())
             .all()
         )
+
+    def save(self, student: Student) -> Student:
+        self.db.add(student)
+        self.db.commit()
+        self.db.refresh(student)
+        return student

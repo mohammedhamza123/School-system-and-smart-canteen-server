@@ -103,6 +103,79 @@ class StudentCreate(BaseModel):
         return self
 
 
+class StudentUpdate(BaseModel):
+    full_name: str | None = None
+    stage: EducationStage | None = None
+    grade_level: str | None = None
+    national_id: str | None = None
+    photo_url: str | None = None
+    blood_type: BloodType | None = None
+    has_chronic_disease: bool | None = None
+    chronic_disease_details: str | None = None
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if len(cleaned) < 3:
+            raise ValueError("Full name must be at least 3 characters")
+        return cleaned
+
+    @field_validator("grade_level")
+    @classmethod
+    def validate_grade_level(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip()
+
+    @field_validator("national_id")
+    @classmethod
+    def validate_national_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned.isdigit():
+            raise ValueError("National ID must contain digits only")
+        return cleaned
+
+    @field_validator("photo_url")
+    @classmethod
+    def normalize_photo_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+    @field_validator("chronic_disease_details")
+    @classmethod
+    def normalize_chronic_details(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class GradeLevelStat(BaseModel):
+    grade_level: str
+    count: int
+
+
+class StageStat(BaseModel):
+    stage: str
+    count: int
+    grades: list[GradeLevelStat]
+
+
+class StudentStatisticsReport(BaseModel):
+    total_students: int
+    chronic_disease_count: int
+    cards_issued_count: int
+    stages: list[StageStat]
+    generated_at: datetime
+
+
 class StudentRead(BaseModel):
     id: int
     student_code: str
@@ -122,6 +195,8 @@ class StudentRead(BaseModel):
     card_issued_by: str | None
     card_issue_count: int
     created_at: datetime
+    parent_username: str | None = None
+    parent_full_name: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -172,3 +247,14 @@ class StudentCreateResponse(BaseModel):
     student: StudentRead
     parent_username: str
     parent_initial_password: str
+
+
+class ParentPasswordResetRequest(BaseModel):
+    new_password: str | None = Field(default=None, min_length=8, max_length=128)
+
+
+class ParentPasswordResetResponse(BaseModel):
+    student_id: int
+    student_name: str
+    parent_username: str
+    new_password: str

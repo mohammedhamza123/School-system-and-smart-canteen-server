@@ -15,8 +15,9 @@ firebase-service-account.json
 *.pem
 *.key
 
-# Database
+# Database (canteen.db is tracked for deployment)
 *.db
+!canteen.db
 *.sqlite3
 
 # IDE & OS

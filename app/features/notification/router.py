@@ -24,7 +24,7 @@ def list_notifications(
     student_id: int | None = None,
     db: Session = Depends(get_db),
     _: dict = Depends(
-        require_roles(UserRole.ADMIN, UserRole.STUDENT_MANAGER, UserRole.CANTEEN_STAFF)
+        require_roles(UserRole.ADMIN, UserRole.CANTEEN_STAFF)
     ),
 ):
     return NotificationService(db).list_for_student(student_id)
